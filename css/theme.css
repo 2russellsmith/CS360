@@ -1,6 +1,15 @@
+#body{
+    margin:0px;
+    width:100%;
+    position:absolute;
+}
 #banner {
     background:url("http://www.pmsuppliers.quickorder.uk.com/static/page-header-bg(1).png");
     width:100%;
+    font-size:200%;
+    height:100px;
+    top:0px;
+
 }
 #banner-title{
     color:white;
