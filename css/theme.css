@@ -6,21 +6,27 @@ body{
 #banner {
     background:url("http://www.pmsuppliers.quickorder.uk.com/static/page-header-bg(1).png");
     width:100%;
-    height:10%;
     top:0px;
+    position: fixed;
+    height: 68px;
+    text-align: center;
+    font-size: x-large;
+    color: white;
 }
 #banner-title{
     margin: 0px;
-    position:fixed;
     color:white;
 }
 #resume{
     float:left;
 }
-
+h1{
+    margin: 0px;
+}
 ul {
     list-style-type: none;
     margin: 0;
+    margin-top: 5%;
     padding: 0;
     width: 25%;
     background-color: #f1f1f1;

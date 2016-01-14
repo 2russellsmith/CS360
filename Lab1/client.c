@@ -10,6 +10,7 @@
 #define SOCKET_ERROR        -1
 #define BUFFER_SIZE         100
 #define HOST_NAME_SIZE      255
+#define PATH_NAME_SIZE      255
 
 int  main(int argc, char* argv[])
 {
@@ -21,6 +22,7 @@ int  main(int argc, char* argv[])
     unsigned nReadAmount;
     char strHostName[HOST_NAME_SIZE];
     int nHostPort;
+    char filePath[PATH_NAME_SIZE];
 
     if(argc < 3)
       {
@@ -35,7 +37,7 @@ int  main(int argc, char* argv[])
   int c;
 
   opterr = 0;
-  while ((c = getopt (argc, argv, "cd::")) != -1)
+  while ((c = getopt (argc, argv, "c:d::")) != -1){
     switch (c)
       {
       case 'd':
@@ -57,15 +59,29 @@ int  main(int argc, char* argv[])
       default:
         abort ();
       }
-  	printf ("dflag = %d, cvalue = %s\n",
-          dflag, cvalue);
-
-  	for (index = optind; index < argc; index++)
+  }
+    if(cvalue != NULL){
+	    int cval = atoi(cvalue);
+  		printf ("dflag = %d, cvalue = %d\n",
+          dflag, cval);
+	}
+  	int iteration = 0;
+  	for (index = optind; index < argc; index++){
+  		if(iteration == 0){
+  			strcpy(strHostName,argv[index]);
+  		}else if(iteration == 1){
+		    nHostPort=atoi(argv[index]);
+  		}else if(iteration == 2){
+			strcpy(filePath, argv[index]);
+  		}else{
+        	printf("\nUsage: client host-name host-port\n");
+  			return 0;
+  		}
+  		iteration++;
   	  	printf ("Non-option argument %s : %d\n", argv[index], index);
     }
+}
 
-    strcpy(strHostName,argv[1]);
-    nHostPort=atoi(argv[2]);
     printf("\nMaking a socket");
     /* make a socket */
     hSocket=socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
