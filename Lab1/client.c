@@ -29,21 +29,17 @@ int  main(int argc, char* argv[])
       }
     else
       {
-      int aflag = 0;
-      int bflag = 0;
+  int dflag = 0;
   char *cvalue = NULL;
   int index;
   int c;
 
   opterr = 0;
-  while ((c = getopt (argc, argv, "abc:")) != -1)
+  while ((c = getopt (argc, argv, "cd::")) != -1)
     switch (c)
       {
-      case 'a':
-        aflag = 1;
-        break;
-      case 'b':
-        bflag = 1;
+      case 'd':
+        dflag = 1;
         break;
       case 'c':
         cvalue = optarg;
@@ -61,15 +57,15 @@ int  main(int argc, char* argv[])
       default:
         abort ();
       }
-  	printf ("aflag = %d, bflag = %d, cvalue = %s\n",
-          aflag, bflag, cvalue);
+  	printf ("dflag = %d, cvalue = %s\n",
+          dflag, cvalue);
 
   	for (index = optind; index < argc; index++)
-  	  	printf ("Non-option argument %s\n", argv[index]);
-        strcpy(strHostName,argv[1]);
-        nHostPort=atoi(argv[2]);
-      }
+  	  	printf ("Non-option argument %s : %d\n", argv[index], index);
+    }
 
+    strcpy(strHostName,argv[1]);
+    nHostPort=atoi(argv[2]);
     printf("\nMaking a socket");
     /* make a socket */
     hSocket=socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
