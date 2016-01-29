@@ -75,7 +75,7 @@ string getFile(string rootPath, string argv, char *pBuffer, int hSocket)
         while ((dp = readdir(dirp)) != NULL){
             string name = dp->d_name;
             if(!strcmp(dp->d_name,"index.html")){
-                return getFile(rootPath, argv + "/index.html", pBuffer, hSocket);
+                return getFile(rootPath, argv + "index.html", pBuffer, hSocket);
             }else if(!strcmp(dp->d_name,".")){
                 result.append("<li><a href=\"/\">home</a></li>");
             }else if(strcmp(dp->d_name,"..")){
@@ -100,7 +100,7 @@ string getFile(string rootPath, string argv, char *pBuffer, int hSocket)
 
 
 #define SOCKET_ERROR        -1
-#define BUFFER_SIZE         500
+#define BUFFER_SIZE         600
 #define MESSAGE             "This is the message I'm sending back and forth"
 #define QUEUE_SIZE          5
 
