@@ -178,6 +178,7 @@ int main(int argc, char* argv[])
     {
         printf("\nWaiting for a connection\n");
         /* get the connected socket */
+        memset(pBuffer,0,sizeof(pBuffer));
         hSocket=accept(hServerSocket,(struct sockaddr*)&Address,(socklen_t *)&nAddressSize);
 
         printf("\nGot a connection from %X (%d)\n",
