@@ -100,7 +100,7 @@ string getFile(string rootPath, string argv, char *pBuffer, int hSocket)
 
 
 #define SOCKET_ERROR        -1
-#define BUFFER_SIZE         100
+#define BUFFER_SIZE         500
 #define MESSAGE             "This is the message I'm sending back and forth"
 #define QUEUE_SIZE          5
 
