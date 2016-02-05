@@ -5,7 +5,7 @@
 #include <iostream>
 #include <semephore.h>
 
-using namespace std
+using namespace std;
 
 sem_t empty, full, mutex;
 class myqueue {
