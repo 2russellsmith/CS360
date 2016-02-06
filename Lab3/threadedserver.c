@@ -48,8 +48,13 @@ string getFileExt(string filename) {
     return ext;
 }
 
+string rootPath;
+#define SOCKET_ERROR        -1
+#define QUEUE_SIZE          5
+
 string getFile()
 {
+    int BUFFER_SIZE = 600;
     char pBuffer[BUFFER_SIZE];
     memset(pBuffer,0,sizeof(pBuffer));
     while(true){
@@ -134,7 +139,6 @@ string getFile()
         // write(hSocket, pBuffer, strlen(pBuffer));
         printf("\nClosing the socket");
         memset(pBuffer,0,sizeof(pBuffer));
-        free(buffer);
         fclose(fp);
         if(close(hSocket) == SOCKET_ERROR)
         {
@@ -144,12 +148,6 @@ string getFile()
 
 }
 
-
-#define SOCKET_ERROR        -1
-#define BUFFER_SIZE         600
-#define MESSAGE             "This is the message I'm sending back and forth"
-#define QUEUE_SIZE          5
-string rootPath;
 
 int main(int argc, char* argv[])
 {
