@@ -1,2 +1,5 @@
+basic:
+	g++ -o basic thread.c -lpthread
+
 threadedServer:
-	g++ -o server thread.c -lpthread
+	g++ -o threadedServer threadedserver.c -lpthread
