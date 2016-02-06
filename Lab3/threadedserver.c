@@ -26,9 +26,7 @@ class myqueue {
   
   public:
   void push(int socket){
-    cout << "HERE!" << endl;
     sem_wait(&empty);
-    cout << "HERE!" << endl;
     sem_wait(&mutex);
     cout << "PUSHING : " << socket << endl;
     stlqueue.push(socket);
@@ -38,8 +36,8 @@ class myqueue {
   int pop(){
     sem_wait(&full);
     sem_wait(&mutex);
-    cout << "POPPING : " << socket << endl;
     int result = stlqueue.front();
+    cout << "POPPING : " << result << endl;
     stlqueue.pop();
     sem_post(&mutex);
     sem_post(&empty);
@@ -140,6 +138,7 @@ void  *getFile(void * arg)
             (void)closedir(dirp);
             sprintf(pBuffer, "%s", result.c_str());
             write(hSocket, pBuffer, strlen(pBuffer));
+
         }else{
         }
         // write(hSocket, pBuffer, strlen(pBuffer));
