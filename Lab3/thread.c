@@ -1,21 +1,22 @@
 #include <pthread.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/queue.h>
+#include <queue>
 #include <iostream>
-#include <semephore.h>
+#include <semaphore.h>
 
 using namespace std;
 
 sem_t empty, full, mutex;
 class myqueue {
-  std::queue <int> stlqueue;
+  queue <int> stlqueue;
   
   public:
   void push(int socket){
     sem_wait(&empty);
     sem_wait(&mutex);
-    stlqueue.push(sock);
+    stlqueue.push(socket);
     sem_post(&mutex);
     sem_post(&full);
   }
@@ -32,43 +33,43 @@ class myqueue {
 
 
 void *howdy(void *arg){
-  sock = dequeue();
-  // Read request
-  // write response
-  // std::queue
-  // close
-  long tid;
-  tid = (long)arg;
-  printf("%s%lu\n", "HELLO!: ", tid);
+    long tid;
+    tid = (long)arg;
+    while(true){ 
+        //sock = dequeue();
+        // Read request
+        // write response
+        // std::queue
+        // close
+        int value = sockqueue.pop();
+        usleep(100);
+        printf("Hello: %lu Handled By:%d\n", value, tid);
+    }
 }
 
-
 int main(){
-  int NS = 20;
-  int QUEUESIZE = 10;
-  long threadid;
-  pthread_t threads[NS];
-
-  sem_init(&mutex, PTHREAD_PROCESS_PRIVATE, 1);
-  sem_init(&full, PTHREAD_PROCESS_PRIVATE, 0);
-  sem_init(&empty, PTHREAD_PROCESS_PRIVATE, QUEUESIZE);
-
-  for(int i = 0; i < NS; i++){
-    sockqueue.push(i);
-  }
-  for(int i = 0; i < NS; i++){
-    cout << sockqueue.pop() << endl;
-  }
-  exit(0);
-  for(threadid = 0; threadid < NS; threadid++){
-    pthread_create(&threads[threadid], NULL, howdy, (void*) threadid);
-  }
-  // //set up socket
-  // //bind listen
-  // for(;;){
-  //   fd = accept;
-  //   enqueue(fd);
-  // }
-  pthread_exit(NULL);
-  return 0;
+    int NS = 10;
+    int QUEUESIZE = 200;
+    long threadid;
+    pthread_t threads[NS];
+ 
+    sem_init(&mutex, PTHREAD_PROCESS_PRIVATE, 1);
+    sem_init(&full, PTHREAD_PROCESS_PRIVATE, 0);
+    sem_init(&empty, PTHREAD_PROCESS_PRIVATE, QUEUESIZE);
+    for(int i = 0; i < QUEUESIZE; i++){
+        sockqueue.push(i);
+    } 
+    for(threadid = 0; threadid < NS; threadid++){
+      pthread_create(&threads[threadid], NULL, howdy, (void*) threadid);
+    }
+    while(true){
+    }
+    // //set up socket
+    // //bind listen
+    // for(;;){
+    //   fd = accept;
+    //   enqueue(fd);
+    // }
+    pthread_exit(NULL);
+    return 0;
 }
