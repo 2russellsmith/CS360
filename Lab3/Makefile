@@ -4,4 +4,6 @@ basic:
 	g++ -o basic thread.c -lpthread
 
 threadedServer:
-	g++ -o threadedServer threadedserver.c -lpthread -std=c++0x
+	g++ -o server threadedserver.c -lpthread -std=c++0x
+clean:
+	rm basic server

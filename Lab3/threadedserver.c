@@ -26,8 +26,11 @@ class myqueue {
   
   public:
   void push(int socket){
+    cout << "HERE!" << endl;
     sem_wait(&empty);
+    cout << "HERE!" << endl;
     sem_wait(&mutex);
+    cout << "PUSHING : " << socket << endl;
     stlqueue.push(socket);
     sem_post(&mutex);
     sem_post(&full);
@@ -35,6 +38,7 @@ class myqueue {
   int pop(){
     sem_wait(&full);
     sem_wait(&mutex);
+    cout << "POPPING : " << socket << endl;
     int result = stlqueue.front();
     stlqueue.pop();
     sem_post(&mutex);
@@ -52,13 +56,15 @@ string rootPath;
 #define SOCKET_ERROR        -1
 #define QUEUE_SIZE          5
 
-string getFile()
+void  *getFile(void * arg)
 {
     int BUFFER_SIZE = 600;
     char pBuffer[BUFFER_SIZE];
     memset(pBuffer,0,sizeof(pBuffer));
     while(true){
+	cout << "Ready to Party " << arg << endl;
         int hSocket = sockqueue.pop();
+	cout << "Started Party " << arg << "  :  " <<  hSocket << endl;
         int status = read(hSocket,pBuffer,BUFFER_SIZE);
         printf("Got from the browser: \n%s\n", pBuffer);
         int len;
@@ -219,6 +225,9 @@ int main(int argc, char* argv[])
     int QUEUESIZE = 200;
     long threadid;
     pthread_t threads[NS];
+    sem_init(&mutex, PTHREAD_PROCESS_PRIVATE, 1);
+    sem_init(&full, PTHREAD_PROCESS_PRIVATE, 0);
+    sem_init(&empty, PTHREAD_PROCESS_PRIVATE, QUEUESIZE);
 
     for(threadid = 0; threadid < NS; threadid++){
       pthread_create(&threads[threadid], NULL, getFile, (void*) threadid);
@@ -229,10 +238,10 @@ int main(int argc, char* argv[])
         printf("\nWaiting for a connection\n");
         /* get the connected socket */
         hSocket=accept(hServerSocket,(struct sockaddr*)&Address,(socklen_t *)&nAddressSize);
-        sockqueue.push(hSocket);
         printf("\nGot a connection from %X (%d)\n",
               Address.sin_addr.s_addr,
               ntohs(Address.sin_port));
+        sockqueue.push(hSocket);
         
     }
 }
