@@ -14,87 +14,130 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
+#include <semaphore.h>
 using namespace std;
+
+sem_t empty, full, mutex;
+class myqueue {
+  queue <int> stlqueue;
+  
+  public:
+  void push(int socket){
+    sem_wait(&empty);
+    sem_wait(&mutex);
+    stlqueue.push(socket);
+    sem_post(&mutex);
+    sem_post(&full);
+  }
+  int pop(){
+    sem_wait(&full);
+    sem_wait(&mutex);
+    int result = stlqueue.front();
+    stlqueue.pop();
+    sem_post(&mutex);
+    sem_post(&empty);
+    return result;
+  }
+} sockqueue;
 
 string getFileExt(string filename) {
     string ext = filename.substr(filename.find_last_of(".") + 1);
     return ext;
 }
 
-string getFile(string rootPath, string argv, char *pBuffer, int hSocket)
+string getFile()
 {
-    struct stat filestat;
-    string fullPath = rootPath + argv;
-    cout << endl << "Getting File " << fullPath << endl;
-    if(stat(fullPath.c_str(), &filestat)) {
-        cout << "ERROR in stat";
-        sprintf(pBuffer, "%s", "HTTP/1.1 404 Page Not Found\r\n\r\n <html> I am sorry but we failed to find the page you are looking for. </html>");
-        write(hSocket, pBuffer, strlen(pBuffer));
-        return "";
-    }
-    FILE *fp;
-    if(S_ISREG(filestat.st_mode)) {
-        cout << fullPath.c_str() << " is a regular file \n";
-        cout << "file size = " << filestat.st_size <<"\n";
-        string result = "HTTP/1.1 200 OK\n";
-        string fileType = getFileExt(fullPath);
-        cout << "FILE TYPE: " << fileType << endl;
+    char pBuffer[BUFFER_SIZE];
+    memset(pBuffer,0,sizeof(pBuffer));
+    while(true){
+        int hSocket = sockqueue.pop();
+        int status = read(hSocket,pBuffer,BUFFER_SIZE);
+        printf("Got from the browser: \n%s\n", pBuffer);
+        int len;
+        string data = "";
+        data.append(pBuffer);
+        int startOfFile = data.find("GET ") + 4;
+        int endOfFile = data.find("HTTP") - 1;
+        string fileName = data.substr(startOfFile, endOfFile - startOfFile);
+        cout << "FileName\n" + fileName + "\n";
+        cout << "rootPath\n" + rootPath + "\n";
+        memset(pBuffer,0,sizeof(pBuffer));
+        struct stat filestat;
+        string fullPath = rootPath + fileName;
+        cout << endl << "Getting File " << fullPath << endl;
+        FILE *fp;
+        if(stat(fullPath.c_str(), &filestat)) {
+            cout << "ERROR in stat";
+            sprintf(pBuffer, "%s", "HTTP/1.1 404 Page Not Found\r\n\r\n <html> I am sorry but we failed to find the page you are looking for. </html>");
+            write(hSocket, pBuffer, strlen(pBuffer));
+        }else if(S_ISREG(filestat.st_mode)) {
+            cout << fullPath.c_str() << " is a regular file \n";
+            cout << "file size = " << filestat.st_size <<"\n";
+            string result = "HTTP/1.1 200 OK\n";
+            string fileType = getFileExt(fullPath);
+            cout << "FILE TYPE: " << fileType << endl;
 
-        if(fileType.compare("html") == 0){
-            result.append("Content-Type: text/html\n");
-            fp = fopen(fullPath.c_str(), "r");
-        }else if(fileType.compare("jpg") == 0){
-            result.append("Content-Type: image/jpg\n");
-            fp = fopen(fullPath.c_str(), "rb");
-        }else if(fileType.compare("gif") == 0){
-            result.append("Content-Type: image/gif\n");
-            fp = fopen(fullPath.c_str(), "rb");
-        }else{
-            result.append("Content-Type: text/plain\n");
-            fp = fopen(fullPath.c_str(), "r");
-        }
+            if(fileType.compare("html") == 0){
+                result.append("Content-Type: text/html\n");
+                fp = fopen(fullPath.c_str(), "r");
+            }else if(fileType.compare("jpg") == 0){
+                result.append("Content-Type: image/jpg\n");
+                fp = fopen(fullPath.c_str(), "rb");
+            }else if(fileType.compare("gif") == 0){
+                result.append("Content-Type: image/gif\n");
+                fp = fopen(fullPath.c_str(), "rb");
+            }else{
+                result.append("Content-Type: text/plain\n");
+                fp = fopen(fullPath.c_str(), "r");
+            }
 
-        result.append("Content-Length: ");
-        result.append(to_string(filestat.st_size));
-        result.append("\r\n\r\n");
-        char *buffer = (char *)malloc(filestat.st_size);
-        sprintf(pBuffer, "%s", result.c_str());
-        fread(buffer, filestat.st_size, 1, fp);
-        write(hSocket, pBuffer, strlen(pBuffer));
-        write(hSocket, buffer, filestat.st_size);
-        free(buffer);
-        fclose(fp);
-        return result;
-    }
-    if(S_ISDIR(filestat.st_mode)) {
-        cout << fullPath.c_str() << " is a directory \n";
-        DIR *dirp;
-        struct dirent *dp;
-        string result = "HTTP/1.1 200 OK\r\n\r\n <html><h1>" + fullPath + "</h1><ul>";
-        dirp = opendir(fullPath.c_str());
-        while ((dp = readdir(dirp)) != NULL){
-            string name = dp->d_name;
-            if(!strcmp(dp->d_name,"index.html")){
-                return getFile(rootPath, argv + "index.html", pBuffer, hSocket);
-            }else if(!strcmp(dp->d_name,".")){
-                result.append("<li><a href=\"/\">home</a></li>");
-            }else if(strcmp(dp->d_name,"..")){
-                if(dp->d_type == 0x8){
-                    cout << "File " << fullPath;
-                    result.append("<li><a href=\"" + argv + name + "\">" + dp->d_name + " </a></li>");
-                }else{
-                    cout << "Dir " << fullPath;
-                    result.append("<li><a href=\"" + argv + name + "/\">" + dp->d_name + " </a></li>");
+            result.append("Content-Length: ");
+            result.append(to_string(filestat.st_size));
+            result.append("\r\n\r\n");
+            char *buffer = (char *)malloc(filestat.st_size);
+            sprintf(pBuffer, "%s", result.c_str());
+            fread(buffer, filestat.st_size, 1, fp);
+            write(hSocket, pBuffer, strlen(pBuffer));
+            write(hSocket, buffer, filestat.st_size);
+            
+        }else if(S_ISDIR(filestat.st_mode)) {
+            cout << fullPath.c_str() << " is a directory \n";
+            DIR *dirp;
+            struct dirent *dp;
+            string result = "HTTP/1.1 200 OK\r\n\r\n <html><h1>" + fullPath + "</h1><ul>";
+            dirp = opendir(fullPath.c_str());
+            while ((dp = readdir(dirp)) != NULL){
+                string name = dp->d_name;
+                if(!strcmp(dp->d_name,"index.html")){
+                    //return getFile(rootPath, fileName + "index.html", pBuffer, hSocket);
+                }else if(!strcmp(dp->d_name,".")){
+                    result.append("<li><a href=\"/\">home</a></li>");
+                }else if(strcmp(dp->d_name,"..")){
+                    if(dp->d_type == 0x8){
+                        cout << "File " << fullPath;
+                        result.append("<li><a href=\"" + fileName + name + "\">" + dp->d_name + " </a></li>");
+                    }else{
+                        cout << "Dir " << fullPath;
+                        result.append("<li><a href=\"" + fileName + name + "/\">" + dp->d_name + " </a></li>");
+                    }
                 }
             }
+            result.append("</ul></html>");
+            (void)closedir(dirp);
+            sprintf(pBuffer, "%s", result.c_str());
+            write(hSocket, pBuffer, strlen(pBuffer));
+        }else{
         }
-        result.append("</ul></html>");
-        (void)closedir(dirp);
-        sprintf(pBuffer, "%s", result.c_str());
-        write(hSocket, pBuffer, strlen(pBuffer));
-        return result;
+        // write(hSocket, pBuffer, strlen(pBuffer));
+        printf("\nClosing the socket");
+        memset(pBuffer,0,sizeof(pBuffer));
+        free(buffer);
+        fclose(fp);
+        if(close(hSocket) == SOCKET_ERROR)
+        {
+         printf("\nCould not close socket\n");
+        }
     }
-    return "HTTP/1.1 500 Internal Server Error\r\n\r\n <html> I am sorry but we seem to be broken. </html>";
 
 }
 
@@ -103,6 +146,7 @@ string getFile(string rootPath, string argv, char *pBuffer, int hSocket)
 #define BUFFER_SIZE         600
 #define MESSAGE             "This is the message I'm sending back and forth"
 #define QUEUE_SIZE          5
+string rootPath;
 
 int main(int argc, char* argv[])
 {
@@ -110,9 +154,7 @@ int main(int argc, char* argv[])
     struct hostent* pHostInfo;   /* holds info about a machine */
     struct sockaddr_in Address; /* Internet socket address stuct */
     int nAddressSize=sizeof(struct sockaddr_in);
-    char pBuffer[BUFFER_SIZE];
     int nHostPort;
-    string rootPath;
 
     if(argc < 3)
       {
@@ -172,43 +214,24 @@ int main(int argc, char* argv[])
         printf("\nCould not listen\n");
         return 0;
     }
+    int NS = 10;
+    int QUEUESIZE = 200;
+    long threadid;
+    pthread_t threads[NS];
 
-    memset(pBuffer,0,sizeof(pBuffer));
+    for(threadid = 0; threadid < NS; threadid++){
+      pthread_create(&threads[threadid], NULL, getFile, (void*) threadid);
+    }
+
     for(;;)
     {
         printf("\nWaiting for a connection\n");
         /* get the connected socket */
-        memset(pBuffer,0,sizeof(pBuffer));
         hSocket=accept(hServerSocket,(struct sockaddr*)&Address,(socklen_t *)&nAddressSize);
-
+        sockqueue.push(hSocket);
         printf("\nGot a connection from %X (%d)\n",
               Address.sin_addr.s_addr,
               ntohs(Address.sin_port));
-        int status = read(hSocket,pBuffer,BUFFER_SIZE);
-        if(status == 0 || status == -1){
-
-        }else{
-            printf("Got from the browser: \n%s\n", pBuffer);
-            int len;
-            string data = "";
-            data.append(pBuffer);
-            int startOfFile = data.find("GET ") + 4;
-            int endOfFile = data.find("HTTP") - 1;
-            string fileName = data.substr(startOfFile, endOfFile - startOfFile);
-            cout << "FileName\n" + fileName + "\n";
-            cout << "rootPath\n" + rootPath + "\n";
-            memset(pBuffer,0,sizeof(pBuffer));
-            // sprintf(pBuffer, "%s", getFile(rootPath + fileName).c_str());
-            getFile(rootPath, fileName, pBuffer, hSocket);
-            // write(hSocket, pBuffer, strlen(pBuffer));
-        }
-        printf("\nClosing the socket");
-        memset(pBuffer,0,sizeof(pBuffer));
-        /* close socket */
-        if(close(hSocket) == SOCKET_ERROR)
-        {
-         printf("\nCould not close socket\n");
-         return 0;
-        }
+        
     }
 }
