@@ -15,6 +15,9 @@
 #include <stdlib.h>
 #include <string>
 #include <semaphore.h>
+#include <pthread.h>
+#include <queue>
+
 using namespace std;
 
 sem_t empty, full, mutex;
