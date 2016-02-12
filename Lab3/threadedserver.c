@@ -17,8 +17,11 @@
 #include <semaphore.h>
 #include <pthread.h>
 #include <queue>
+#include <sys/signal.h>
 
 using namespace std;
+void handler (int status);   /* definition of signal handler */
+int  counter = 0;
 
 sem_t empty, full, mutex;
 class myqueue {
@@ -45,6 +48,11 @@ class myqueue {
   }
 } sockqueue;
 
+void handler (int status)
+{
+	printf("received signal %d\n",status);
+}
+
 string getFileExt(string filename) {
     string ext = filename.substr(filename.find_last_of(".") + 1);
     return ext;
@@ -62,7 +70,7 @@ void  *getFile(void * arg)
     while(true){
 	cout << "Ready to Party " << arg << endl;
         int hSocket = sockqueue.pop();
-	cout << "Started Party " << arg << "  :  " <<  hSocket << endl;
+	cout << "Started Party on thread " << arg << "  :  with socket " <<  hSocket << endl;
         int status = read(hSocket,pBuffer,BUFFER_SIZE);
         printf("Got from the browser: \n%s\n", pBuffer);
         int len;
@@ -111,7 +119,14 @@ void  *getFile(void * arg)
             fread(buffer, filestat.st_size, 1, fp);
             write(hSocket, pBuffer, strlen(pBuffer));
             write(hSocket, buffer, filestat.st_size);
-            
+            printf("\nClosing the socket");
+            memset(pBuffer,0,sizeof(pBuffer));
+            fclose(fp);
+            if(close(hSocket) == SOCKET_ERROR)
+            {
+             printf("\nCould not close socket\n");
+            }
+	    free(buffer);
         }else if(S_ISDIR(filestat.st_mode)) {
             cout << fullPath.c_str() << " is a directory \n";
             DIR *dirp;
@@ -139,15 +154,13 @@ void  *getFile(void * arg)
             sprintf(pBuffer, "%s", result.c_str());
             write(hSocket, pBuffer, strlen(pBuffer));
 
+            printf("\nClosing the socket");
+            memset(pBuffer,0,sizeof(pBuffer));
+            if(close(hSocket) == SOCKET_ERROR)
+            {
+             printf("\nCould not close socket\n");
+            }
         }else{
-        }
-        // write(hSocket, pBuffer, strlen(pBuffer));
-        printf("\nClosing the socket");
-        memset(pBuffer,0,sizeof(pBuffer));
-        fclose(fp);
-        if(close(hSocket) == SOCKET_ERROR)
-        {
-         printf("\nCould not close socket\n");
         }
     }
 
@@ -161,16 +174,30 @@ int main(int argc, char* argv[])
     struct sockaddr_in Address; /* Internet socket address stuct */
     int nAddressSize=sizeof(struct sockaddr_in);
     int nHostPort;
+    int NS;
+    int rc1, rc2;
 
-    if(argc < 3)
+	// First set up the signal handler
+	struct sigaction sigold, signew;
+
+	signew.sa_handler=handler;
+	sigemptyset(&signew.sa_mask);
+	sigaddset(&signew.sa_mask,SIGINT);
+	signew.sa_flags = SA_RESTART;
+	sigaction(SIGINT,&signew,&sigold);
+	sigaction(SIGHUP,&signew,&sigold);
+	sigaction(SIGPIPE,&signew,&sigold);
+
+    if(argc < 4)
       {
-        printf("\nUsage: server host-port dir\n");
+        printf("\nUsage: server host-port numberOfThreads dir\n");
         return 0;
       }
     else
       {
         nHostPort=atoi(argv[1]);
-        rootPath = argv[2];
+	NS = atoi(argv[2]);
+        rootPath = argv[3];
       }
 
     printf("\nStarting server");
@@ -220,7 +247,6 @@ int main(int argc, char* argv[])
         printf("\nCould not listen\n");
         return 0;
     }
-    int NS = 10;
     int QUEUESIZE = 200;
     long threadid;
     pthread_t threads[NS];
